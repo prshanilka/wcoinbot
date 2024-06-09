@@ -234,7 +234,8 @@ class Tapper:
                 logger.success(f"{self.session_name} | Successful tapped! | "
                                f"Balance: <c>{int(user_data['balance']):,}</c> (<g>+{int(random_taps):,}</g>) | Total: <e>{int(response['balance']):,}</e>")
                 user_data = response
-
+                logger.success(f"{user_data} | user data | ")
+                logger.success(f"{response} | response | ")
                 new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) 
                 if(new_energy > int(user_data["max_energy"])):
                     new_energy = int(user_data["max_energy"])  
