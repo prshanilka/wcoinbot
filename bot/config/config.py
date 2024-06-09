@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     SLEEP_BY_MIN_ENERGY: list[int] = [1800, 2400]
 
 
-    RANDOM_TAPS_COUNT: list[int] = [10, 50]
-    SLEEP_BETWEEN_TAP: list[int] = [10, 25]
+    RANDOM_TAPS_COUNT: list[int] = [30, 80]
+    SLEEP_BETWEEN_TAP: list[int] = [5, 20]
 
     USE_PROXY_FROM_FILE: bool = False
 

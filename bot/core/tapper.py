@@ -186,26 +186,29 @@ class Tapper:
                     proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
                     http_client = aiohttp.ClientSession(
                         headers=headers, connector=proxy_conn)
-
+                # if user_data['energy']:
+                # logger.success(f"{user_data} | first | ")
                 if not is_jwt_valid(access_token):
                     login_data = await self.login(http_client=http_client, tg_web_data=tg_web_data, base_url=base_url, user_id=user_id)
                     user_data = login_data['user']
                     access_token = login_data['jwt']
+                    # logger.success(f"{user_data['energy']} | second | ")
                     if not access_token:
                         logger.error(
                             f"{self.session_name} | Failed fetch token | Sleep {60:,}s")
                         await asyncio.sleep(delay=60)
                         continue
-                new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) 
+                # logger.success(f"{user_data['energy']} | third | ")
+                new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) + int(user_data["energy"])
                 if(new_energy > int(user_data["max_energy"])):
                     new_energy = int(user_data["max_energy"])  
                 user_data["energy"] = new_energy
                 logger.info(
-                        f"{self.session_name} |  Energy updated  |(<g>+{int(user_data['energy']):,}</g>) ")          
+                        f"{self.session_name} |  Updated Energy value |(<g>{int(user_data['energy']):,}</g>) ")          
                 http_client.headers["Authorization"] = f"Bearer {access_token}"
                 if not user_data:
                     user_data = await self.get_me_telegram(http_client=http_client, url=get_me_details_url)
-                    
+                # logger.success(f"{user_data['energy']} | forth | ")
                 if int(user_data["energy"]) < settings.MIN_AVAILABLE_ENERGY:
                     random_sleep = randint(
                         settings.SLEEP_BY_MIN_ENERGY[0], settings.SLEEP_BY_MIN_ENERGY[1])
@@ -233,14 +236,12 @@ class Tapper:
 
                 logger.success(f"{self.session_name} | Successful tapped! | "
                                f"Balance: <c>{int(user_data['balance']):,}</c> (<g>+{int(random_taps):,}</g>) | Total: <e>{int(response['balance']):,}</e>")
-                user_data = response
-                logger.success(f"{user_data} | user data | ")
-                logger.success(f"{response} | response | ")
-                new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) 
-                if(new_energy > int(user_data["max_energy"])):
-                    new_energy = int(user_data["max_energy"])  
-                user_data["energy"] = new_energy
-                
+                # logger.success(f"{user_data['energy']} | user data | ")
+                # logger.success(f"{response['energy']} | response | ")
+
+                user_data.clear()
+                user_data.update(response)
+
             except InvalidSession as error:
                 raise error
 
