@@ -156,7 +156,6 @@ class Tapper:
     async def run(self, proxy: str | None) -> None:
         access_token = ''
         user_data = {}
-        hit_min = False
         proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
         http_client = aiohttp.ClientSession(
             headers=headers, connector=proxy_conn)
@@ -200,7 +199,9 @@ class Tapper:
                 new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) 
                 if(new_energy > int(user_data["max_energy"])):
                     new_energy = int(user_data["max_energy"])  
-                user_data["energy"] = new_energy          
+                user_data["energy"] = new_energy
+                logger.info(
+                        f"{self.session_name} |  Energy updated  |(<g>+{int(user_data['energy']):,}</g>) ")          
                 http_client.headers["Authorization"] = f"Bearer {access_token}"
                 if not user_data:
                     user_data = await self.get_me_telegram(http_client=http_client, url=get_me_details_url)
@@ -209,7 +210,6 @@ class Tapper:
                         settings.SLEEP_BY_MIN_ENERGY[0], settings.SLEEP_BY_MIN_ENERGY[1])
                     logger.info(
                         f"{self.session_name} | energy is zero | Sleep {random_sleep:,}s")
-                    hit_min = True
                     await asyncio.sleep(delay=random_sleep)
                     continue
 
