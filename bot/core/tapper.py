@@ -190,8 +190,8 @@ class Tapper:
 
                 if not is_jwt_valid(access_token):
                     login_data = await self.login(http_client=http_client, tg_web_data=tg_web_data, base_url=base_url, user_id=user_id)
+                    user_data = await self.get_me_telegram(http_client=http_client, url=get_me_details_url)
                     access_token = login_data['jwt']
-                    user_data = login_data['user']
                     if not access_token:
                         logger.error(
                             f"{self.session_name} | Failed fetch token | Sleep {60:,}s")
