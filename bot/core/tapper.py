@@ -145,7 +145,7 @@ class Tapper:
             logger.error(
                 f"{self.session_name} | Proxy: {proxy} | Error: {error}")
             
-   async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
+    async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
         try:
             response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
             ip = (await response.json()).get('origin')
