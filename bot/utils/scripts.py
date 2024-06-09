@@ -28,7 +28,7 @@ def encode_url(url: str) -> str:
 def is_jwt_valid(token: str) -> bool:
     try:
         decode = jwt.decode(token, options={"verify_signature": False})
-        if int(decode['exp']) < int(time()):
+        if int(decode['exp']) < (int(time()) - 60):
             return False
         else:
             return True
