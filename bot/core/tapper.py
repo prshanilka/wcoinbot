@@ -205,6 +205,7 @@ class Tapper:
                 http_client.headers["Authorization"] = f"Bearer {access_token}"
                 if not user_data:
                     user_data = await self.get_me_telegram(http_client=http_client, url=get_me_details_url)
+                    
                 if int(user_data["energy"]) < settings.MIN_AVAILABLE_ENERGY:
                     random_sleep = randint(
                         settings.SLEEP_BY_MIN_ENERGY[0], settings.SLEEP_BY_MIN_ENERGY[1])
@@ -234,6 +235,11 @@ class Tapper:
                                f"Balance: <c>{int(user_data['balance']):,}</c> (<g>+{int(random_taps):,}</g>) | Total: <e>{int(response['balance']):,}</e>")
                 user_data = response
 
+                new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) 
+                if(new_energy > int(user_data["max_energy"])):
+                    new_energy = int(user_data["max_energy"])  
+                user_data["energy"] = new_energy
+                
             except InvalidSession as error:
                 raise error
 
