@@ -85,11 +85,10 @@ class Tapper:
             raise error
 
         except Exception as error:
-            logger.error(
-                f"{self.session_name} | Unknown error during Authorization: {error}")
+            logger.error(f"{self.session_name} | Unknown error during Authorization: {error}")
             await asyncio.sleep(delay=3)
 
-    async def login(self, http_client: aiohttp.ClientSession, tg_web_data: str, base_url: str, user_id: str) -> str:
+    async def login(self, http_client: aiohttp.ClientSession, base_url: str, user_id: str) -> dict:
         response_text = ''
         try:
             response = await http_client.post(url=base_url, json={"identifier": user_id, "password": user_id})
@@ -102,24 +101,21 @@ class Tapper:
                          f"Response text: {escape_html(response_text)[:256]}...")
             await asyncio.sleep(delay=3)
 
-    async def get_me_telegram(self, http_client: aiohttp.ClientSession, url: str) -> dict[str]:
+    async def get_me_telegram(self, http_client: aiohttp.ClientSession, url: str) -> dict:
         response_text = ''
-
         try:
             response = await http_client.get(url=url)
             response_text = await response.text()
             response.raise_for_status()
 
             response_json = await response.json()
-            # tasks = response_json['telegramUser']
-
             return response_json
         except Exception as error:
             logger.error(f"{self.session_name} | Unknown error while getting Me Telegram: {error} | "
                          f"Response text: {escape_html(response_text)[:256]}...")
             await asyncio.sleep(delay=3)
 
-    async def send_taps(self, http_client: aiohttp.ClientSession, url: str,  data: dict[str]) -> dict[str]:
+    async def send_taps(self, http_client: aiohttp.ClientSession, url: str, data: dict) -> dict:
         response_text = ''
         try:
             response = await http_client.put(url=url, json=data)
@@ -128,23 +124,12 @@ class Tapper:
                 response.raise_for_status()
 
             response_json = json.loads(response_text)
-            # player_data = response_json.get('clickerUser') or response_json.get(
-            #     'found', {}).get('clickerUser', {})
-
             return response_json
         except Exception as error:
             logger.error(f"{self.session_name} | Unknown error while Tapping: {error} | "
                          f"Response text: {escape_html(response_text)[:256]}...")
             await asyncio.sleep(delay=3)
 
-        try:
-            response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
-            ip = (await response.json()).get('origin')
-            logger.info(f"{self.session_name} | Proxy IP: {ip}")
-        except Exception as error:
-            logger.error(
-                f"{self.session_name} | Proxy: {proxy} | Error: {error}")
-            
     async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
         try:
             response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
@@ -152,29 +137,25 @@ class Tapper:
             logger.info(f"{self.session_name} | Proxy IP: {ip}")
         except Exception as error:
             logger.error(f"{self.session_name} | Proxy: {proxy} | Error: {error}")
-            
+
     async def run(self, proxy: str | None) -> None:
         access_token = ''
         user_data = {}
         proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
-        http_client = aiohttp.ClientSession(
-            headers=headers, connector=proxy_conn)
+        http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
 
         if proxy:
             await self.check_proxy(http_client=http_client, proxy=proxy)
 
         tg_web_data = await self.get_tg_web_data(proxy=proxy)
         user_id = tg_web_data.split('"id":')[1].split(',')[0].strip()
-        query_id = tg_web_data.split('query_id=', maxsplit=1)[
-            1].split('&user', maxsplit=1)[0]
-        user_details = tg_web_data.split('user=', maxsplit=1)[
-            1].split('&auth_date', maxsplit=1)[0]
-        auth_date = tg_web_data.split('auth_date=', maxsplit=1)[
-            1].split('&hash', maxsplit=1)[0]
+        query_id = tg_web_data.split('query_id=', maxsplit=1)[1].split('&user', maxsplit=1)[0]
+        user_details = tg_web_data.split('user=', maxsplit=1)[1].split('&auth_date', maxsplit=1)[0]
+        auth_date = tg_web_data.split('auth_date=', maxsplit=1)[1].split('&hash', maxsplit=1)[0]
         hash_ = tg_web_data.split('hash=', maxsplit=1)[1]
 
         base_url = f'https://starfish-app-fknmx.ondigitalocean.app/wapi/api/auth/local?hash=query_id={query_id}&user={user_details}&auth_date={auth_date}&hash={hash_}'
-        get_me_details_url = f'https://starfish-app-fknmx.ondigitalocean.app/wapi/api/users/me?timestamp={int(time())}}}&hash=query_id={query_id}&user={user_details}&auth_date={auth_date}&hash={hash_}'
+        get_me_details_url = f'https://starfish-app-fknmx.ondigitalocean.app/wapi/api/users/me?timestamp={int(time())}&hash=query_id={query_id}&user={user_details}&auth_date={auth_date}&hash={hash_}'
 
         while True:
             try:
@@ -184,64 +165,60 @@ class Tapper:
                             proxy_conn.close()
 
                     proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
-                    http_client = aiohttp.ClientSession(
-                        headers=headers, connector=proxy_conn)
-                # if user_data['energy']:
-                # logger.success(f"{user_data} | first | ")
+                    http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
+
                 if not is_jwt_valid(access_token):
-                    login_data = await self.login(http_client=http_client, tg_web_data=tg_web_data, base_url=base_url, user_id=user_id)
+                    login_data = await self.login(http_client=http_client, base_url=base_url, user_id=user_id)
                     user_data = login_data['user']
                     access_token = login_data['jwt']
-                    # logger.success(f"{user_data['energy']} | second | ")
+
                     if not access_token:
-                        logger.error(
-                            f"{self.session_name} | Failed fetch token | Sleep {60:,}s")
+                        logger.error(f"{self.session_name} | Failed fetch token | Sleep {60}s")
                         await asyncio.sleep(delay=60)
                         continue
-                # logger.success(f"{user_data['energy']} | third | ")
-                new_energy= (int(time()) - int(user_data["last_click_at"])) *  (int(user_data["energy_refill_multiplier"]) + 1) + int(user_data["energy"])
-                if(new_energy > int(user_data["max_energy"])):
-                    new_energy = int(user_data["max_energy"])  
+
+                new_energy = (int(time()) - int(user_data["last_click_at"])) * (int(user_data["energy_refill_multiplier"]) + 1) + int(user_data["energy"])
+                if new_energy > int(user_data["max_energy"]):
+                    new_energy = int(user_data["max_energy"])
                 user_data["energy"] = new_energy
-                logger.info(
-                        f"{self.session_name} |  Updated Energy value |(<g>{int(user_data['energy']):,}</g>) ")          
+                logger.info(f"{self.session_name} | Updated Energy value |(<g>{int(user_data['energy']):,}</g>)")
+                
                 http_client.headers["Authorization"] = f"Bearer {access_token}"
                 if not user_data:
                     user_data = await self.get_me_telegram(http_client=http_client, url=get_me_details_url)
-                # logger.success(f"{user_data['energy']} | forth | ")
+
                 if int(user_data["energy"]) < settings.MIN_AVAILABLE_ENERGY:
-                    random_sleep = randint(
-                        settings.SLEEP_BY_MIN_ENERGY[0], settings.SLEEP_BY_MIN_ENERGY[1])
-                    logger.info(
-                        f"{self.session_name} | energy is zero | Sleep {random_sleep:,}s")
+                    random_sleep = randint(settings.SLEEP_BY_MIN_ENERGY[0], settings.SLEEP_BY_MIN_ENERGY[1])
+                    logger.info(f"{self.session_name} | energy is zero | Sleep {random_sleep}s")
                     await asyncio.sleep(delay=random_sleep)
                     continue
 
                 random_taps = randint(a=20, b=80)
-
-                if (int(user_data["energy"]) < random_taps):
-                    random_taps = user_data["energy"]
+                if int(user_data["energy"]) < random_taps:
+                    random_taps = int(user_data["energy"])
 
                 tap_data = {
                     "id": user_data["id"],
                     "clicks": int(user_data["clicks"]) + random_taps,
-                    "energy":  int(user_data["energy"]) - random_taps,
-                    "balance":  int(user_data['balance']) + random_taps,
+                    "energy": int(user_data["energy"]) - random_taps,
+                    "balance": int(user_data['balance']) + random_taps,
                     "balance_from_clicks": int(user_data["balance_from_clicks"]) + random_taps,
                     "last_click_at": int(time()),
                 }
+
                 send_taps_url = f'https://starfish-app-fknmx.ondigitalocean.app/wapi/api/users/{user_data["id"]}?timestamp={int(time())}&hash=query_id={query_id}&user={user_details}&auth_date={auth_date}&hash={hash_}'
 
                 response = await self.send_taps(http_client=http_client, url=send_taps_url, data=tap_data)
 
                 logger.success(f"{self.session_name} | Successful tapped! | "
                                f"Balance: <c>{int(user_data['balance']):,}</c> (<g>+{int(random_taps):,}</g>) | Total: <e>{int(response['balance']):,}</e>")
-                # logger.success(f"{user_data['energy']} | user data | ")
-                # logger.success(f"{response['energy']} | response | ")
 
                 user_data.clear()
                 user_data.update(response)
-
+                await http_client.close()
+                if proxy_conn:
+                    if not proxy_conn.closed:
+                        proxy_conn.close()
             except InvalidSession as error:
                 raise error
 
@@ -250,9 +227,7 @@ class Tapper:
                 await asyncio.sleep(delay=3)
 
             else:
-                sleep_between_clicks = randint(
-                    a=settings.SLEEP_BETWEEN_TAP[0], b=settings.SLEEP_BETWEEN_TAP[1])
-
+                sleep_between_clicks = randint(a=settings.SLEEP_BETWEEN_TAP[0], b=settings.SLEEP_BETWEEN_TAP[1])
                 logger.info(f"Sleep {sleep_between_clicks}s")
                 await asyncio.sleep(delay=sleep_between_clicks)
 
