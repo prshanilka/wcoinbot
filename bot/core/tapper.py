@@ -168,7 +168,9 @@ class Tapper:
                     http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
 
                 if not is_jwt_valid(access_token):
-                    http_client.headers["Authorization"] = None
+                    # Remove Authorization header conditionally
+                    if "Authorization" in http_client.headers:
+                        del http_client.headers["Authorization"]
                     login_data = await self.login(http_client=http_client, base_url=base_url, user_id=user_id)
                     user_data = login_data['user']
                     access_token = login_data['jwt']
