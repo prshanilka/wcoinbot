@@ -123,7 +123,6 @@ class Tapper:
             enc_response_json = await enc_response.json()
             enc_json = enc_response_json["encryptedData"]
             enc_json['data'] = data
-            logger.info(f"enc_json : {data}")
             response = await http_client.put(url=url, json=enc_json)
             response_text = await response.text()
             if response.status != 422:
